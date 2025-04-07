@@ -97,7 +97,7 @@ app.use((req,res,next) =>{
 // })
 
 app.get("/",(req,res) =>{
-    res.send("Hi i am root")
+    res.redirect("listings/index.ejs")
 })
 
 app.listen(8080, () =>{
