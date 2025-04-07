@@ -1,0 +1,182 @@
+<% layout("/layouts/boilerplate") %>
+
+<div class="row">
+    <div class="col-8 offset-3">
+        <h1>Listing Details</h1>
+    </div>
+    <div class="card offset-3 col-6 show-card">
+        <img src="<%= listing.image.url %>" class="card-img-top show-img" alt="Listing Image">
+        <div class="card-body">
+            <p class="card-text">
+                <b><%= listing.title %></b>
+                <br>
+                <i>Owned by <%= listing.owner.username %></i>
+                <br>
+                <%= listing.description %>
+                <br>
+                &#8377; <%= listing.price.toLocaleString("en-IN") %>
+                <br>
+                <%= listing.location %>
+                <br>
+                <%= listing.country %>
+            </p>
+        </div>
+    </div>
+    <% if(currUser && currUser._id.equals(listing.owner._id)) { %>
+    <div class="btns">
+        <a href="/listings/<%= listing._id %>/edit" class="btn btn-dark col-2 offset-3 edit-btn">Edit</a>
+        <form method="post" action="/listings/<%= listing._id %>?_method=DELETE">
+            <button class="btn btn-dark offset-5">Delete</button>
+        </form>
+    </div>
+    <% } %>
+
+    <% if(currUser) { %>
+    <div class="col-8 offset-3">
+        <h4>Lave a review</h4>
+        <form action="/listings/<%= listing.id %>/reviews" method="post" novalidate class="needs-validation">
+            <div class="mb-3 mt-3">
+                <label for="rating" class="from-label">Rating</label>
+                <fieldset class="starability-growRotate">
+                    <input type="radio" id="no-rate" class="input-no-rate" name="review[rating]" value="1" checked aria-label="No rating." />
+                    <input type="radio" id="first-rate1" name="review[rating]" value="1" />
+                    <label for="first-rate1" title="Terrible">1 star</label>
+                    <input type="radio" id="first-rate2" name="review[rating]" value="2" />
+                    <label for="first-rate2" title="Not good">2 stars</label>
+                    <input type="radio" id="first-rate3" name="review[rating]" value="3" />
+                    <label for="first-rate3" title="Average">3 stars</label>
+                    <input type="radio" id="first-rate4" name="review[rating]" value="4" />
+                    <label for="first-rate4" title="Very good">4 stars</label>
+                    <input type="radio" id="first-rate5" name="review[rating]" value="5" />
+                    <label for="first-rate5" title="Amazing">5 stars</label>
+                </fieldset>
+            </div>
+            <div class="comment-area mb-3 mt-4">
+                <textarea required class="form-control" placeholder="what is your view?" rows="4" name="review[comment]"></textarea>
+                <div class="invalid-feedback">Please Sumbit Some comments...</div>
+            </div>
+            <button type="submit" class="btn btn-outline-success mb-3 offset-4">Submit</button>
+        </form>
+    </div>
+    <% } %>
+
+    <br><br>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="map" id="map"></div>
+        </div>
+    </div>
+
+    <hr>
+
+    <h4>All Review</h4>
+    <div class="row">
+        <% for(review of listing.reviews){ %>
+        <div class="card col-6">
+            <div class="card-body review-card border rounded-4 p-2">
+                <h6 class="card-title"><%= review.author.username %></h6>
+                <p class="starability-result card-text" data-rating=<%= review.rating %> ></p>
+                <p class="card-title"><%= review.comment %></p>
+                <form method="post" action="/listings/<%= listing._id %>/reviews/<%= review._id %>?_method=Delete">
+                    <button class="btn btn-sm btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+        <% } %>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Get location from your listing
+        const location = "<%= listing.location %>";
+        // const country = "<%= listing.country %>";
+        const fullAddress = `${location}`;
+        // const title = "<%= listing.title %>";
+
+        // Default fallback coordinates (center of India)
+        let lon = 78.9629;
+        let lat = 20.5937;
+
+        // Geocoding function using Nominatim API
+        function geocodeAddress(address) {
+            return fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`)
+                .then(response => response.json())
+                .then(data => {
+                    console.log("Geocoding data:", data); // Check geocoding results
+                    if (data.length > 0) {
+                        return {
+                            lon: parseFloat(data[0].lon),
+                            lat: parseFloat(data[0].lat)
+                        };
+                    }
+                    return null;
+                })
+                .catch(error => {
+                    console.error("Geocoding error:", error);
+                    return null;
+                });
+        }
+
+        // Initialize the map
+        function initMap(coords) {
+            console.log("Map target element:", document.getElementById('map')); // Check target element
+            try {
+                const map = new ol.Map({
+                    target: 'map',
+                    layers: [
+                        new ol.layer.Tile({
+                            source: new ol.source.OSM()
+                        })
+                    ],
+                    view: new ol.View({
+                        center: ol.proj.fromLonLat([coords.lon, coords.lat]),
+                        zoom: 12
+                    })
+                });
+
+                // Add marker
+                const marker = new ol.Feature({
+                    geometry: new ol.geom.Point(ol.proj.fromLonLat([coords.lon, coords.lat]))
+                });
+
+                const markerLayer = new ol.layer.Vector({
+                    source: new ol.source.Vector({
+                        features: [marker]
+                    }),
+                    style: new ol.style.Style({
+                        image: new ol.style.Icon({
+                            src: 'https://cdn.jsdelivr.net/gh/openlayers/openlayers.github.io@master/en/v6.14.1/build/ol/logo.png',
+                            scale: 0.5
+                        })
+                    })
+                });
+
+                map.addLayer(markerLayer);
+
+            } catch (e) {
+                console.error("Map initialization failed:", e); // Log the actual error
+                document.getElementById('map').innerHTML = '<p class="text-danger">Could not load map. Please try again later.</p>';
+            }
+        }
+
+        geocodeAddress(fullAddress)
+            .then(coords => {
+                console.log("Geocoding coordinates:", coords); // Check coordinates
+                if (coords) {
+                    initMap(coords);
+                } else {
+                    geocodeAddress(location)
+                        .then(coords => {
+                            console.log("Geocoding coordinates (location only):", coords); // Check coordinates
+                            if (coords) {
+                                initMap(coords);
+                            } else {
+                                initMap({ lon, lat });
+                            }
+                        });
+                }
+            });
+    });
+</script>
