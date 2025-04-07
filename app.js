@@ -97,7 +97,7 @@ app.use((req,res,next) =>{
 // })
 
 app.get("/",(req,res) =>{
-    res.redirect("listings/index.ejs")
+    res.redirect("/listings")
 })
 
 app.listen(8080, () =>{
