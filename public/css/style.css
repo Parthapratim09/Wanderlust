@@ -119,3 +119,19 @@ color: rgb(0, 0, 0);
     font-size: 14px;
     white-space: nowrap;
   }
+
+
+
+  /* Add background to collapsed menu */
+@media (max-width: 991px) { /* matches navbar-expand-lg */
+  .navbar-collapse {
+    background-color: #ffffff; /* white background */
+    padding: 1rem;
+    border-radius: 0.25rem;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .navbar-nav .nav-link {
+    color: #000000; /* text color for visibility */
+  }
+}
